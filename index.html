@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tır Takip</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#111418;--surface:#1a1f26;--surface2:#222830;--border:#2c3340;--accent:#f5a623;--accent2:#e8891a;--red:#ef4444;--green:#22c55e;--blue:#3b82f6;--purple:#a855f7;--text:#eceef0;--muted:#6b7585;--muted2:#8a95a3}
+body{background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;min-height:100vh;font-size:14px}
+.auth-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:1rem}
+.auth-box{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:2rem;width:100%;max-width:380px}
+.auth-logo{text-align:center;margin-bottom:1.5rem}
+.auth-logo-icon{font-size:2.5rem}
+.auth-logo-text{font-family:'Barlow Condensed',sans-serif;font-size:1.6rem;font-weight:800}
+.auth-logo-text span{color:var(--accent)}
+.auth-title{font-family:'Barlow Condensed',sans-serif;font-size:1rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted2);text-align:center;margin-bottom:1.5rem}
+.auth-error{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:var(--red);padding:.6rem .9rem;border-radius:7px;font-size:.82rem;margin-bottom:1rem;display:none}
+.auth-success{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);color:var(--green);padding:.6rem .9rem;border-radius:7px;font-size:.82rem;margin-bottom:1rem;display:none}
+.form-group{display:flex;flex-direction:column;gap:.3rem;margin-bottom:.75rem}
+label{font-size:.72rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted2)}
+input,select,textarea{background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:'Barlow',sans-serif;font-size:.85rem;padding:.6rem .75rem;border-radius:7px;outline:none;transition:border-color .2s;width:100%}
+input:focus,select:focus,textarea:focus{border-color:var(--accent)}
+textarea{resize:vertical;min-height:70px}
+select option{background:var(--surface2)}
+.btn{background:var(--accent);color:#111;border:none;font-family:'Barlow Condensed',sans-serif;font-size:.85rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:.6rem 1.2rem;border-radius:7px;cursor:pointer;transition:background .2s}
+.btn:hover{background:var(--accent2)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-block{width:100%;margin-top:.5rem}
+.btn-sm{padding:.3rem .8rem;font-size:.75rem}
+.btn-ghost{background:transparent;color:var(--muted2);border:1px solid var(--border)}
+.btn-ghost:hover{color:var(--text);border-color:var(--muted);background:transparent}
+.btn-danger{background:transparent;color:var(--red);border:1px solid transparent;font-size:.75rem}
+.btn-danger:hover{background:rgba(239,68,68,.1)}
+.btn-green{background:var(--green)!important;color:#fff!important}
+.btn-green:hover{background:#16a34a!important}
+.header{background:linear-gradient(135deg,#1a1f26 0%,#0f1318 100%);border-bottom:2px solid var(--accent);padding:.85rem 1.5rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.logo{display:flex;align-items:center;gap:.75rem}
+.logo-icon{font-size:1.5rem}
+.logo-text{font-family:'Barlow Condensed',sans-serif;font-size:1.3rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase}
+.logo-text span{color:var(--accent)}
+.header-right{display:flex;align-items:center;gap:.75rem}
+.user-badge{font-size:.75rem;color:var(--muted2)}
+.user-badge strong{color:var(--accent)}
+.nav{display:flex;gap:.25rem;padding:.65rem 1.5rem;background:var(--surface);border-bottom:1px solid var(--border);overflow-x:auto}
+.nav-btn{background:none;border:1px solid transparent;color:var(--muted2);font-family:'Barlow Condensed',sans-serif;font-size:.82rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;padding:.35rem .9rem;border-radius:6px;cursor:pointer;white-space:nowrap;transition:all .2s}
+.nav-btn:hover{color:var(--text);border-color:var(--border)}
+.nav-btn.active{background:rgba(245,166,35,.12);border-color:var(--accent);color:var(--accent)}
+.main{padding:1.5rem;max-width:1200px;margin:0 auto}
+.page{display:none}
+.page.active{display:block}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:1rem;margin-bottom:1.5rem}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1rem;position:relative;overflow:hidden}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.stat-card.orange::before{background:var(--accent)}
+.stat-card.green::before{background:var(--green)}
+.stat-card.red::before{background:var(--red)}
+.stat-card.blue::before{background:var(--blue)}
+.stat-card.purple::before{background:var(--purple)}
+.stat-card.teal::before{background:#14b8a6}
+.stat-label{font-size:.68rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:.4rem}
+.stat-value{font-family:'Barlow Condensed',sans-serif;font-size:1.7rem;font-weight:700;line-height:1}
+.stat-sub{font-size:.7rem;color:var(--muted2);margin-top:.25rem}
+.stat-card.orange .stat-value{color:var(--accent)}
+.stat-card.green .stat-value{color:var(--green)}
+.stat-card.red .stat-value{color:var(--red)}
+.stat-card.blue .stat-value{color:var(--blue)}
+.stat-card.purple .stat-value{color:var(--purple)}
+.stat-card.teal .stat-value{color:#14b8a6}
+.section{background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-bottom:1.5rem;overflow:hidden}
+.section-header{display:flex;align-items:center;justify-content:space-between;padding:.85rem 1.25rem;border-bottom:1px solid var(--border);background:var(--surface2);flex-wrap:wrap;gap:.5rem}
+.section-title{font-family:'Barlow Condensed',sans-serif;font-size:.9rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase}
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:.82rem}
+thead tr{background:rgba(255,255,255,.03)}
+th{text-align:left;padding:.6rem 1rem;font-family:'Barlow Condensed',sans-serif;font-size:.7rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);white-space:nowrap}
+td{padding:.65rem 1rem;border-bottom:1px solid rgba(44,51,64,.6);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(255,255,255,.02)}
+.badge{display:inline-block;padding:.2rem .55rem;border-radius:4px;font-size:.7rem;font-weight:600;letter-spacing:.05em}
+.badge-orange{background:rgba(245,166,35,.15);color:var(--accent)}
+.badge-green{background:rgba(34,197,94,.15);color:var(--green)}
+.badge-red{background:rgba(239,68,68,.15);color:var(--red)}
+.badge-blue{background:rgba(59,130,246,.15);color:var(--blue)}
+.badge-purple{background:rgba(168,85,247,.15);color:var(--purple)}
+.badge-teal{background:rgba(20,184,166,.15);color:#14b8a6}
+.filter-row{display:flex;align-items:center;gap:.5rem;padding:.75rem 1.25rem;border-bottom:1px solid var(--border);flex-wrap:wrap}
+.period-btn{background:none;border:1px solid var(--border);color:var(--muted2);font-family:'Barlow Condensed',sans-serif;font-size:.78rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;padding:.28rem .75rem;border-radius:5px;cursor:pointer;transition:all .2s}
+.period-btn.active{background:rgba(245,166,35,.1);border-color:var(--accent);color:var(--accent)}
+.form-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;display:none;align-items:center;justify-content:center;padding:1rem}
+.form-overlay.open{display:flex}
+.form-box{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.5rem;width:100%;max-width:480px;max-height:90vh;overflow-y:auto}
+.form-title{font-family:'Barlow Condensed',sans-serif;font-size:1.1rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;margin-bottom:1.25rem;color:var(--accent)}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:.5rem}
+.form-grid .form-group{margin-bottom:0}
+.form-group.full{grid-column:1/-1}
+.form-actions{display:flex;gap:.5rem;justify-content:flex-end;margin-top:1rem}
+.empty{text-align:center;padding:2.5rem 1rem;color:var(--muted)}
+.empty-icon{font-size:2.5rem;margin-bottom:.5rem}
+.empty p{font-size:.85rem}
+.loading{text-align:center;padding:2rem;color:var(--muted2);font-size:.85rem}
+.net-positive{color:var(--green);font-weight:600}
+.net-negative{color:var(--red);font-weight:600}
+.surucu-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:1rem;padding:1.25rem}
+.surucu-kart{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:1rem;cursor:pointer;transition:border-color .2s}
+.surucu-kart:hover{border-color:var(--accent)}
+.surucu-kart-ad{font-family:'Barlow Condensed',sans-serif;font-size:1rem;font-weight:700;margin-bottom:.25rem}
+.surucu-kart-stats{margin-top:.75rem;display:flex;gap:.5rem;flex-wrap:wrap}
+@media(max-width:520px){.main{padding:1rem}.form-grid{grid-template-columns:1fr}.stats-grid{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+
+<div id="authScreen">
+  <div class="auth-wrap">
+    <div class="auth-box">
+      <div class="auth-logo">
+        <div class="auth-logo-icon">🚛</div>
+        <div class="auth-logo-text">Tır<span>Takip</span></div>
+      </div>
+      <div class="auth-title" id="authTitle">Giriş Yap</div>
+      <div class="auth-error" id="authError"></div>
+      <div class="auth-success" id="authSuccess"></div>
+      <div id="loginForm">
+        <div class="form-group"><label>E-posta</label><input type="email" id="loginEmail" placeholder="ornek@mail.com"></div>
+        <div class="form-group"><label>Şifre</label><input type="password" id="loginPassword" placeholder="••••••••"></div>
+        <button class="btn btn-block" id="loginBtn" onclick="girisYap()">Giriş Yap</button>
+        <p style="text-align:center;margin-top:1rem;font-size:.8rem;color:var(--muted2)">Hesabın yok mu? <a href="#" onclick="switchToRegister()" style="color:var(--accent);text-decoration:none">Kayıt Ol</a></p>
+      </div>
+      <div id="registerForm" style="display:none">
+        <div class="form-group"><label>Ad Soyad</label><input type="text" id="regAd" placeholder="Ahmet Yılmaz"></div>
+        <div class="form-group"><label>E-posta</label><input type="email" id="regEmail" placeholder="ornek@mail.com"></div>
+        <div class="form-group"><label>Şifre</label><input type="password" id="regPassword" placeholder="En az 6 karakter"></div>
+        <button class="btn btn-block" id="registerBtn" onclick="kayitOl()">Kayıt Ol</button>
+        <p style="text-align:center;margin-top:1rem;font-size:.8rem;color:var(--muted2)">Hesabın var mı? <a href="#" onclick="switchToLogin()" style="color:var(--accent);text-decoration:none">Giriş Yap</a></p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="appScreen" style="display:none">
+  <div class="header">
+    <div class="logo"><div class="logo-icon">🚛</div><div class="logo-text">Tır<span>Takip</span></div></div>
+    <div class="header-right">
+      <div class="user-badge">Hoş geldin, <strong id="userAdHeader"></strong></div>
+      <button class="btn btn-ghost btn-sm" onclick="cikisYap()">Çıkış</button>
+    </div>
+  </div>
+  <div class="nav">
+    <button class="nav-btn active" onclick="showPage('dashboard',this)">📊 Özet</button>
+    <button class="nav-btn" onclick="showPage('sefer',this)">🗺️ Seferler</button>
+    <button class="nav-btn" onclick="showPage('yakit',this)">⛽ Yakıt & Masraf</button>
+    <button class="nav-btn" onclick="showPage('gelir',this)">💰 Gelir</button>
+    <button class="nav-btn" onclick="showPage('bakim',this)">🔧 Bakım</button>
+    <button class="nav-btn" id="yoneticiNavBtn" style="display:none" onclick="showPage('yonetici',this)">👑 Yönetici</button>
+  </div>
+  <div class="main">
+
+    <!-- DASHBOARD -->
+    <div class="page active" id="page-dashboard">
+      <div class="filter-row">
+        <span style="color:var(--muted2);font-size:.75rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase">Dönem:</span>
+        <button class="period-btn active" onclick="setDashPeriod('hafta',this)">Bu Hafta</button>
+        <button class="period-btn" onclick="setDashPeriod('ay',this)">Bu Ay</button>
+        <button class="period-btn" onclick="setDashPeriod('yil',this)">Bu Yıl</button>
+        <button class="period-btn" onclick="setDashPeriod('tumumu',this)">Tümü</button>
+      </div>
+      <div style="padding:1.25rem 0 .5rem"><div class="stats-grid" id="dashStats"><div class="loading">Yükleniyor...</div></div></div>
+      <div class="section">
+        <div class="section-header"><div class="section-title">⏳ Bekleyen Ödemeler</div><div id="dashBekleyenToplam" style="font-family:'Barlow Condensed',sans-serif;font-size:1rem;font-weight:700;color:var(--accent)"></div></div>
+        <div class="table-wrap"><table><thead><tr><th>Tarih</th><th>Kaynak</th><th>Tür</th><th>Tutar / Mazot</th><th>Gün</th><th></th></tr></thead><tbody id="dashBekleyenBody"></tbody></table></div>
+      </div>
+      <div class="section">
+        <div class="section-header"><div class="section-title">Son Seferler</div></div>
+        <div class="table-wrap"><table><thead><tr><th>Tarih</th><th>Güzergah</th><th>Yük</th><th>KM</th><th>Ücret Türü</th><th>Değer</th></tr></thead><tbody id="dashSeferBody"></tbody></table></div>
+      </div>
+      <div class="section">
+        <div class="section-header"><div class="section-title">Gelir - Gider Özeti</div></div>
+        <div style="padding:1.25rem" id="dashGelirGider"></div>
+      </div>
+    </div>
+
+    <!-- SEFERLER -->
+    <div class="page" id="page-sefer">
+      <div class="section">
+        <div class="section-header"><div class="section-title">🗺️ Sefer Kayıtları</div><button class="btn btn-sm" onclick="openForm('sefer')">+ Yeni Sefer</button></div>
+        <div class="filter-row">
+          <button class="period-btn active" onclick="setTablePeriod('sefer','hafta',this)">Hafta</button>
+          <button class="period-btn" onclick="setTablePeriod('sefer','ay',this)">Ay</button>
+          <button class="period-btn" onclick="setTablePeriod('sefer','yil',this)">Yıl</button>
+          <button class="period-btn" onclick="setTablePeriod('sefer','tumumu',this)">Tümü</button>
+        </div>
+        <div class="table-wrap"><table><thead><tr><th>Tarih</th><th>Nereden</th><th>Nereye</th><th>Yük</th><th>KM</th><th>Saat</th><th>Ücret Türü</th><th>Değer</th><th>Not</th><th></th></tr></thead><tbody id="seferBody"></tbody></table></div>
+      </div>
+    </div>
+
+    <!-- YAKIT -->
+    <div class="page" id="page-yakit">
+      <div class="section">
+        <div class="section-header"><div class="section-title">⛽ Yakıt & Masraf</div><button class="btn btn-sm" onclick="openForm('yakit')">+ Yeni Kayıt</button></div>
+        <div class="filter-row">
+          <button class="period-btn active" onclick="setTablePeriod('yakit','hafta',this)">Hafta</button>
+          <button class="period-btn" onclick="setTablePeriod('yakit','ay',this)">Ay</button>
+          <button class="period-btn" onclick="setTablePeriod('yakit','yil',this)">Yıl</button>
+          <button class="period-btn" onclick="setTablePeriod('yakit','tumumu',this)">Tümü</button>
+        </div>
+        <div class="table-wrap"><table><thead><tr><th>Tarih</th><th>Tür</th><th>Miktar</th><th>Birim Fiyat</th><th>Toplam</th><th>Not</th><th></th></tr></thead><tbody id="yakitBody"></tbody></table></div>
+      </div>
+    </div>
+
+    <!-- GELİR -->
+    <div class="page" id="page-gelir">
+      <div class="section">
+        <div class="section-header"><div class="section-title">💰 Gelir Kayıtları</div><button class="btn btn-sm" onclick="openForm('gelir')">+ Yeni Gelir</button></div>
+        <div class="filter-row">
+          <button class="period-btn active" onclick="setTablePeriod('gelir','hafta',this)">Hafta</button>
+          <button class="period-btn" onclick="setTablePeriod('gelir','ay',this)">Ay</button>
+          <button class="period-btn" onclick="setTablePeriod('gelir','yil',this)">Yıl</button>
+          <button class="period-btn" onclick="setTablePeriod('gelir','tumumu',this)">Tümü</button>
+        </div>
+        <div class="table-wrap"><table><thead><tr><th>Tarih</th><th>Kaynak</th><th>Tür</th><th>Tutar / Mazot</th><th>Durum</th><th>Not</th><th>İşlem</th><th></th></tr></thead><tbody id="gelirBody"></tbody></table></div>
+      </div>
+    </div>
+
+    <!-- BAKIM -->
+    <div class="page" id="page-bakim">
+      <div class="section">
+        <div class="section-header"><div class="section-title">🔧 Bakım & Arıza</div><button class="btn btn-sm" onclick="openForm('bakim')">+ Yeni Kayıt</button></div>
+        <div class="filter-row">
+          <button class="period-btn active" onclick="setTablePeriod('bakim','hafta',this)">Hafta</button>
+          <button class="period-btn" onclick="setTablePeriod('bakim','ay',this)">Ay</button>
+          <button class="period-btn" onclick="setTablePeriod('bakim','yil',this)">Yıl</button>
+          <button class="period-btn" onclick="setTablePeriod('bakim','tumumu',this)">Tümü</button>
+        </div>
+        <div class="table-wrap"><table><thead><tr><th>Tarih</th><th>Tür</th><th>Açıklama</th><th>KM</th><th>Maliyet</th><th>Servis</th><th>Durum</th><th></th></tr></thead><tbody id="bakimBody"></tbody></table></div>
+      </div>
+    </div>
+
+    <!-- YÖNETİCİ -->
+    <div class="page" id="page-yonetici">
+      <div class="section">
+        <div class="section-header"><div class="section-title">👑 Sürücüler</div><button class="btn btn-sm" onclick="openForm('surucu')">+ Yeni Sürücü Ekle</button></div>
+        <div id="surucuGrid" class="surucu-grid"><div class="loading">Yükleniyor...</div></div>
+      </div>
+      <div id="yoneticiDetay" style="display:none">
+        <div class="section">
+          <div class="section-header"><div class="section-title" id="yoneticiDetayBaslik">Sürücü Detayı</div><button class="btn btn-ghost btn-sm" onclick="closeYoneticiDetay()">← Geri</button></div>
+          <div style="padding:1.25rem" id="yoneticiDetayIcerik"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- SEFER FORMU -->
+<div class="form-overlay" id="form-sefer">
+  <div class="form-box">
+    <div class="form-title">🗺️ Yeni Sefer</div>
+    <div class="form-grid">
+      <div class="form-group"><label>Tarih</label><input type="date" id="sf-tarih"></div>
+      <div class="form-group"><label>Saat</label><input type="time" id="sf-saat"></div>
+      <div class="form-group"><label>Nereden</label><input type="text" id="sf-nereden" placeholder="Başlangıç"></div>
+      <div class="form-group"><label>Nereye</label><input type="text" id="sf-nereye" placeholder="Varış"></div>
+      <div class="form-group"><label>Yük Türü</label><select id="sf-yuk"><option>Hafriyat</option><option>Kum</option><option>Çakıl</option><option>Moloz</option><option>Toprak</option><option>Mıcır</option><option>Diğer</option></select></div>
+      <div class="form-group"><label>KM</label><input type="number" id="sf-km" placeholder="0"></div>
+      <div class="form-group full"><label>Ücret Türü</label>
+        <select id="sf-ucret-turu" onchange="ucretTuruDegis()">
+          <option value="nakit">💵 Nakit / Havale</option>
+          <option value="mazot">⛽ Mazot Karşılığı</option>
+        </select>
+      </div>
+      <div class="form-group" id="sf-nakit-grup"><label>Gelir (₺)</label><input type="number" id="sf-gelir" placeholder="0"></div>
+      <div class="form-group" id="sf-mazot-grup" style="display:none"><label>Mazot (Litre)</label><input type="number" id="sf-mazot" placeholder="0"></div>
+      <div class="form-group full"><label>Not</label><textarea id="sf-aciklama" placeholder="Ek bilgi..."></textarea></div>
+    </div>
+    <div class="form-actions"><button class="btn btn-ghost btn-sm" onclick="closeForm('sefer')">İptal</button><button class="btn btn-sm" onclick="saveSefer()">Kaydet</button></div>
+  </div>
+</div>
+
+<!-- YAKIT FORMU -->
+<div class="form-overlay" id="form-yakit">
+  <div class="form-box">
+    <div class="form-title">⛽ Masraf Ekle</div>
+    <div class="form-grid">
+      <div class="form-group"><label>Tarih</label><input type="date" id="yf-tarih"></div>
+      <div class="form-group"><label>Tür</label><select id="yf-tur"><option>Yakıt</option><option>Lastik</option><option>Yağ / Filtre</option><option>Köprü / Otoyol</option><option>Araç Yıkama</option><option>Diğer</option></select></div>
+      <div class="form-group"><label>Miktar / Litre</label><input type="number" id="yf-miktar" placeholder="0"></div>
+      <div class="form-group"><label>Birim Fiyat (₺)</label><input type="number" id="yf-birim" placeholder="0" step="0.01"></div>
+      <div class="form-group full"><label>Not</label><textarea id="yf-aciklama" placeholder="Ek bilgi..."></textarea></div>
+    </div>
+    <div class="form-actions"><button class="btn btn-ghost btn-sm" onclick="closeForm('yakit')">İptal</button><button class="btn btn-sm" onclick="saveYakit()">Kaydet</button></div>
+  </div>
+</div>
+
+<!-- GELİR FORMU -->
+<div class="form-overlay" id="form-gelir">
+  <div class="form-box">
+    <div class="form-title">💰 Gelir Ekle</div>
+    <div class="form-grid">
+      <div class="form-group"><label>Tarih</label><input type="date" id="gf-tarih"></div>
+      <div class="form-group"><label>Tür</label><select id="gf-tur"><option>Sefer Ücreti</option><option>Mazot Karşılığı</option><option>Günlük Kiralama</option><option>Aylık Sözleşme</option><option>Diğer</option></select></div>
+      <div class="form-group"><label>Kaynak / Müşteri</label><input type="text" id="gf-kaynak" placeholder="Firma / Kişi"></div>
+      <div class="form-group"><label>Tutar (₺) <small style="color:var(--muted2)">(mazotsa 0 bırak)</small></label><input type="number" id="gf-tutar" placeholder="0"></div>
+      <div class="form-group"><label>Mazot (Litre) <small style="color:var(--muted2)">(nakitse 0 bırak)</small></label><input type="number" id="gf-mazot" placeholder="0"></div>
+      <div class="form-group"><label>Durum</label><select id="gf-durum"><option>Bekliyor</option><option>Ödendi</option></select></div>
+      <div class="form-group full"><label>Not</label><textarea id="gf-aciklama" placeholder="Ek bilgi..."></textarea></div>
+    </div>
+    <div class="form-actions"><button class="btn btn-ghost btn-sm" onclick="closeForm('gelir')">İptal</button><button class="btn btn-sm" onclick="saveGelir()">Kaydet</button></div>
+  </div>
+</div>
+
+<!-- BAKIM FORMU -->
+<div class="form-overlay" id="form-bakim">
+  <div class="form-box">
+    <div class="form-title">🔧 Bakım / Arıza</div>
+    <div class="form-grid">
+      <div class="form-group"><label>Tarih</label><input type="date" id="bf-tarih"></div>
+      <div class="form-group"><label>Tür</label><select id="bf-tur"><option>Periyodik Bakım</option><option>Arıza</option><option>Lastik Değişimi</option><option>Fren Sistemi</option><option>Motor</option><option>Elektrik</option><option>Diğer</option></select></div>
+      <div class="form-group full"><label>Açıklama</label><input type="text" id="bf-aciklama" placeholder="Yapılan işlem..."></div>
+      <div class="form-group"><label>KM (Sayaç)</label><input type="number" id="bf-km" placeholder="0"></div>
+      <div class="form-group"><label>Maliyet (₺)</label><input type="number" id="bf-maliyet" placeholder="0"></div>
+      <div class="form-group"><label>Servis / Tamirci</label><input type="text" id="bf-servis" placeholder="Servis adı"></div>
+      <div class="form-group"><label>Durum</label><select id="bf-durum"><option>Tamamlandı</option><option>Devam Ediyor</option><option>Bekliyor</option></select></div>
+    </div>
+    <div class="form-actions"><button class="btn btn-ghost btn-sm" onclick="closeForm('bakim')">İptal</button><button class="btn btn-sm" onclick="saveBakim()">Kaydet</button></div>
+  </div>
+</div>
+
+<!-- SÜRÜCÜ FORMU -->
+<div class="form-overlay" id="form-surucu">
+  <div class="form-box">
+    <div class="form-title">👤 Yeni Sürücü Ekle</div>
+    <div class="auth-error" id="surucuError"></div>
+    <div class="form-group"><label>Ad Soyad</label><input type="text" id="sur-ad" placeholder="Ahmet Yılmaz"></div>
+    <div class="form-group"><label>E-posta</label><input type="email" id="sur-email" placeholder="surucu@mail.com"></div>
+    <div class="form-group"><label>Şifre</label><input type="password" id="sur-sifre" placeholder="En az 6 karakter"></div>
+    <div class="form-actions"><button class="btn btn-ghost btn-sm" onclick="closeForm('surucu')">İptal</button><button class="btn btn-sm" onclick="surucuEkle()">Ekle</button></div>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL='https://oqovenbdzegrmcuiwufo.supabase.co';
+const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xb3ZlbmJkemVncm1jdWl3dWZvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzNjYyMzQsImV4cCI6MjA4Nzk0MjIzNH0.6AgBLAamwNFe26OKMBvdUjtTpqcBA4o-u6f9rbjoiQE';
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+
+let currentUser=null,currentProfile=null,dashPeriod='hafta';
+let periods={sefer:'hafta',yakit:'hafta',gelir:'hafta',bakim:'hafta'};
+
+function today(){return new Date().toISOString().split('T')[0]}
+function fmt(n){return Number(n||0).toLocaleString('tr-TR',{minimumFractionDigits:0,maximumFractionDigits:0})+' ₺'}
+function fmtMazot(n){return Number(n||0).toLocaleString('tr-TR',{minimumFractionDigits:0,maximumFractionDigits:0})+' Lt'}
+function formatDate(d){if(!d)return'-';const[y,m,day]=d.split('-');return`${day}.${m}.${y}`}
+function getWeekStart(){const d=new Date();const day=d.getDay()||7;d.setDate(d.getDate()-day+1);return d.toISOString().split('T')[0]}
+function getMonthStart(){const d=new Date();return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-01`}
+function getYearStart(){return`${new Date().getFullYear()}-01-01`}
+function periodFrom(p){if(p==='hafta')return getWeekStart();if(p==='ay')return getMonthStart();if(p==='yil')return getYearStart();return'2000-01-01'}
+function emptyRow(cols,icon,msg){return`<tr><td colspan="${cols}"><div class="empty"><div class="empty-icon">${icon}</div><p>${msg}</p></div></td></tr>`}
+
+function switchToRegister(){document.getElementById('loginForm').style.display='none';document.getElementById('registerForm').style.display='block';document.getElementById('authTitle').textContent='Kayıt Ol'}
+function switchToLogin(){document.getElementById('registerForm').style.display='none';document.getElementById('loginForm').style.display='block';document.getElementById('authTitle').textContent='Giriş Yap'}
+function showAuthError(msg){const el=document.getElementById('authError');el.textContent=msg;el.style.display='block';document.getElementById('authSuccess').style.display='none'}
+function showAuthSuccess(msg){const el=document.getElementById('authSuccess');el.textContent=msg;el.style.display='block';document.getElementById('authError').style.display='none'}
+function hideAuthMsg(){document.getElementById('authError').style.display='none';document.getElementById('authSuccess').style.display='none'}
+
+async function girisYap(){
+  hideAuthMsg();
+  const email=document.getElementById('loginEmail').value.trim();
+  const pass=document.getElementById('loginPassword').value;
+  if(!email||!pass)return showAuthError('E-posta ve şifre gerekli.');
+  const btn=document.getElementById('loginBtn');
+  btn.textContent='Giriş yapılıyor...';btn.disabled=true;
+  try{
+    const{data,error}=await sb.auth.signInWithPassword({email,password:pass});
+    if(error)showAuthError('Giriş başarısız: '+error.message);
+  }catch(e){
+    showAuthError('Bağlantı hatası. Lütfen tekrar deneyin.');
+  }finally{
+    btn.textContent='Giriş Yap';btn.disabled=false;
+  }
+}
+
+async function kayitOl(){
+  hideAuthMsg();
+  const ad=document.getElementById('regAd').value.trim();
+  const email=document.getElementById('regEmail').value.trim();
+  const pass=document.getElementById('regPassword').value;
+  if(!ad||!email||!pass)return showAuthError('Tüm alanları doldurun.');
+  if(pass.length<6)return showAuthError('Şifre en az 6 karakter olmalı.');
+  const btn=document.getElementById('registerBtn');
+  btn.textContent='Kayıt olunuyor...';btn.disabled=true;
+  try{
+    const{data,error}=await sb.auth.signUp({email,password:pass});
+    if(error)return showAuthError('Hata: '+error.message);
+    if(data.user){
+      await sb.from('profiles').insert({id:data.user.id,ad,rol:'surucu'});
+      showAuthSuccess('Kayıt başarılı! Giriş yapılıyor...');
+    }
+  }catch(e){
+    showAuthError('Bağlantı hatası. Lütfen tekrar deneyin.');
+  }finally{
+    btn.textContent='Kayıt Ol';btn.disabled=false;
+  }
+}
+
+async function cikisYap(){
+  await sb.auth.signOut();
+  currentUser=null;currentProfile=null;
+  document.getElementById('appScreen').style.display='none';
+  document.getElementById('authScreen').style.display='block';
+}
+
+sb.auth.onAuthStateChange(async(event,session)=>{
+  if(session&&session.user){
+    currentUser=session.user;
+    const{data}=await sb.from('profiles').select('*').eq('id',currentUser.id).single();
+    currentProfile=data;
+    document.getElementById('authScreen').style.display='none';
+    document.getElementById('appScreen').style.display='block';
+    document.getElementById('userAdHeader').textContent=currentProfile&&currentProfile.ad?currentProfile.ad:currentUser.email;
+    if(currentProfile&&currentProfile.rol==='yonetici')document.getElementById('yoneticiNavBtn').style.display='inline-block';
+    renderDashboard();
+  }
+});
+
+function showPage(name,btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  if(btn)btn.classList.add('active');
+  if(name==='dashboard')renderDashboard();
+  else if(name==='yonetici')renderYonetici();
+  else renderTable(name);
+}
+
+function setDashPeriod(p,btn){
+  dashPeriod=p;
+  document.querySelectorAll('#page-dashboard .period-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderDashboard();
+}
+
+function setTablePeriod(table,p,btn){
+  periods[table]=p;
+  btn.closest('.filter-row').querySelectorAll('.period-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderTable(table);
+}
+
+function ucretTuruDegis(){
+  const tur=document.getElementById('sf-ucret-turu').value;
+  document.getElementById('sf-nakit-grup').style.display=tur==='nakit'?'':'none';
+  document.getElementById('sf-mazot-grup').style.display=tur==='mazot'?'':'none';
+}
+
+function openForm(name){
+  const dateMap={sefer:'sf-tarih',yakit:'yf-tarih',gelir:'gf-tarih',bakim:'bf-tarih'};
+  if(dateMap[name])document.getElementById(dateMap[name]).value=today();
+  if(name==='sefer'){
+    const now=new Date();
+    document.getElementById('sf-saat').value=`${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+    document.getElementById('sf-ucret-turu').value='nakit';
+    ucretTuruDegis();
+  }
+  document.getElementById('form-'+name).classList.add('open');
+}
+function closeForm(name){document.getElementById('form-'+name).classList.remove('open')}
+
+async function saveSefer(){
+  const tarih=document.getElementById('sf-tarih').value;
+  const nereden=document.getElementById('sf-nereden').value;
+  const nereye=document.getElementById('sf-nereye').value;
+  const ucretTuru=document.getElementById('sf-ucret-turu').value;
+  const gelir=ucretTuru==='nakit'?Number(document.getElementById('sf-gelir').value)||0:0;
+  const mazotLitre=ucretTuru==='mazot'?Number(document.getElementById('sf-mazot').value)||0:0;
+  if(!tarih||!nereden||!nereye)return alert('Tarih, nereden ve nereye zorunlu.');
+  const{error}=await sb.from('seferler').insert({
+    user_id:currentUser.id,tarih,saat:document.getElementById('sf-saat').value,
+    nereden,nereye,yuk:document.getElementById('sf-yuk').value,
+    km:Number(document.getElementById('sf-km').value)||0,
+    gelir,mazot_litre:mazotLitre,ucret_turu:ucretTuru,
+    aciklama:document.getElementById('sf-aciklama').value
+  });
+  if(error)return alert('Hata: '+error.message);
+  // Gelire otomatik ekle
+  if(gelir>0){
+    await sb.from('gelirler').insert({user_id:currentUser.id,tarih,tur:'Sefer Ücreti',kaynak:`${nereden} → ${nereye}`,tutar:gelir,mazot_litre:0,durum:'Bekliyor',aciklama:'Seferden otomatik eklendi'});
+  }
+  if(mazotLitre>0){
+    await sb.from('gelirler').insert({user_id:currentUser.id,tarih,tur:'Mazot Karşılığı',kaynak:`${nereden} → ${nereye}`,tutar:0,mazot_litre:mazotLitre,durum:'Bekliyor',aciklama:'Seferden otomatik eklendi'});
+  }
+  closeForm('sefer');
+  ['sf-nereden','sf-nereye','sf-km','sf-gelir','sf-mazot','sf-aciklama'].forEach(id=>document.getElementById(id).value='');
+  renderDashboard();renderTable('sefer');
+}
+
+async function saveYakit(){
+  const miktar=Number(document.getElementById('yf-miktar').value)||0;
+  const birim=Number(document.getElementById('yf-birim').value)||0;
+  const tarih=document.getElementById('yf-tarih').value;
+  if(!tarih)return alert('Tarih zorunlu.');
+  const{error}=await sb.from('yakitlar').insert({user_id:currentUser.id,tarih,tur:document.getElementById('yf-tur').value,miktar,birim,toplam:miktar*(birim||1),aciklama:document.getElementById('yf-aciklama').value});
+  if(error)return alert('Hata: '+error.message);
+  closeForm('yakit');
+  ['yf-miktar','yf-birim','yf-aciklama'].forEach(id=>document.getElementById(id).value='');
+  renderDashboard();renderTable('yakit');
+}
+
+async function saveGelir(){
+  const tarih=document.getElementById('gf-tarih').value;
+  const tutar=Number(document.getElementById('gf-tutar').value)||0;
+  const mazot=Number(document.getElementById('gf-mazot').value)||0;
+  if(!tarih||(tutar===0&&mazot===0))return alert('Tarih ve tutar veya mazot miktarı zorunlu.');
+  const{error}=await sb.from('gelirler').insert({user_id:currentUser.id,tarih,tur:document.getElementById('gf-tur').value,kaynak:document.getElementById('gf-kaynak').value,tutar,mazot_litre:mazot,durum:document.getElementById('gf-durum').value,aciklama:document.getElementById('gf-aciklama').value});
+  if(error)return alert('Hata: '+error.message);
+  closeForm('gelir');
+  ['gf-kaynak','gf-tutar','gf-mazot','gf-aciklama'].forEach(id=>document.getElementById(id).value='');
+  renderDashboard();renderTable('gelir');
+}
+
+async function saveBakim(){
+  const tarih=document.getElementById('bf-tarih').value;
+  if(!tarih)return alert('Tarih zorunlu.');
+  const{error}=await sb.from('bakimlar').insert({user_id:currentUser.id,tarih,tur:document.getElementById('bf-tur').value,aciklama:document.getElementById('bf-aciklama').value,km:Number(document.getElementById('bf-km').value)||0,maliyet:Number(document.getElementById('bf-maliyet').value)||0,servis:document.getElementById('bf-servis').value,durum:document.getElementById('bf-durum').value});
+  if(error)return alert('Hata: '+error.message);
+  closeForm('bakim');
+  ['bf-aciklama','bf-km','bf-maliyet','bf-servis'].forEach(id=>document.getElementById(id).value='');
+  renderDashboard();renderTable('bakim');
+}
+
+async function deleteItem(table,id){
+  if(!confirm('Bu kaydı silmek istediğinize emin misiniz?'))return;
+  await sb.from(table).delete().eq('id',id);
+  renderDashboard();
+  const ap=document.querySelector('.page.active');
+  if(ap){const n=ap.id.replace('page-','');if(['sefer','yakit','gelir','bakim'].includes(n))renderTable(n)}
+}
+
+async function tahsilEt(id){
+  const{data}=await sb.from('gelirler').select('kaynak,tutar,mazot_litre,tur').eq('id',id).single();
+  if(!data)return;
+  const deger=data.tur==='Mazot Karşılığı'?fmtMazot(data.mazot_litre):fmt(data.tutar);
+  if(!confirm(`${data.kaynak||'Bu ödeme'} — ${deger} tahsil edildi olarak işaretlensin mi?`))return;
+  await sb.from('gelirler').update({durum:'Ödendi',tahsil_tarih:today()}).eq('id',id);
+  renderDashboard();renderTable('gelir');
+}
+
+function gelirDeger(g){
+  if(g.tur==='Mazot Karşılığı'||Number(g.mazot_litre)>0)return`<span style="color:#14b8a6;font-weight:600;">${fmtMazot(g.mazot_litre)}</span>`;
+  return`<span style="font-weight:600;color:var(--green)">${fmt(g.tutar)}</span>`;
+}
+
+async function renderDashboard(){
+  if(!currentUser)return;
+  const from=periodFrom(dashPeriod);
+  const uid=currentUser.id;
+  const[sR,yR,gR,bR,bekR]=await Promise.all([
+    sb.from('seferler').select('*').eq('user_id',uid).gte('tarih',from).order('tarih',{ascending:false}),
+    sb.from('yakitlar').select('*').eq('user_id',uid).gte('tarih',from),
+    sb.from('gelirler').select('*').eq('user_id',uid).gte('tarih',from),
+    sb.from('bakimlar').select('*').eq('user_id',uid).gte('tarih',from),
+    sb.from('gelirler').select('*').eq('user_id',uid).eq('durum','Bekliyor').order('tarih',{ascending:true})
+  ]);
+  const seferler=sR.data||[],yakitlar=yR.data||[],gelirler=gR.data||[],bakimlar=bR.data||[],bekleyenler=bekR.data||[];
+  const topGelir=gelirler.filter(g=>g.tur!=='Mazot Karşılığı').reduce((s,i)=>s+Number(i.tutar),0);
+  const topMazotGelir=gelirler.filter(g=>g.tur==='Mazot Karşılığı').reduce((s,i)=>s+Number(i.mazot_litre||0),0);
+  const topYakit=yakitlar.reduce((s,i)=>s+Number(i.toplam||0),0);
+  const topBakim=bakimlar.reduce((s,i)=>s+Number(i.maliyet||0),0);
+  const topGider=topYakit+topBakim;
+  const net=topGelir-topGider;
+  const topKm=seferler.reduce((s,i)=>s+Number(i.km||0),0);
+
+  document.getElementById('dashStats').innerHTML=`
+    <div class="stat-card orange"><div class="stat-label">Toplam Gelir</div><div class="stat-value">${fmt(topGelir)}</div><div class="stat-sub">${gelirler.length} kayıt</div></div>
+    <div class="stat-card teal"><div class="stat-label">Mazot Geliri</div><div class="stat-value">${topMazotGelir.toLocaleString('tr-TR')}</div><div class="stat-sub">litre</div></div>
+    <div class="stat-card red"><div class="stat-label">Toplam Gider</div><div class="stat-value">${fmt(topGider)}</div><div class="stat-sub">Yakıt + Bakım</div></div>
+    <div class="stat-card ${net>=0?'green':'red'}"><div class="stat-label">Net Kar</div><div class="stat-value">${fmt(net)}</div><div class="stat-sub">${net>=0?'✓ Karda':'✗ Zararda'}</div></div>
+    <div class="stat-card blue"><div class="stat-label">Sefer Sayısı</div><div class="stat-value">${seferler.length}</div><div class="stat-sub">sefer</div></div>
+    <div class="stat-card purple"><div class="stat-label">Toplam KM</div><div class="stat-value">${topKm.toLocaleString('tr-TR')}</div><div class="stat-sub">km</div></div>`;
+
+  // Bekleyen ödemeler
+  const topBekNakit=bekleyenler.filter(g=>g.tur!=='Mazot Karşılığı').reduce((s,i)=>s+Number(i.tutar),0);
+  const topBekMazot=bekleyenler.filter(g=>g.tur==='Mazot Karşılığı').reduce((s,i)=>s+Number(i.mazot_litre||0),0);
+  let bekLabel='';
+  if(topBekNakit>0)bekLabel+=fmt(topBekNakit);
+  if(topBekMazot>0)bekLabel+=(bekLabel?' + ':'')+fmtMazot(topBekMazot)+' mazot';
+  document.getElementById('dashBekleyenToplam').textContent=bekLabel;
+
+  const bBody=document.getElementById('dashBekleyenBody');
+  if(bekleyenler.length===0){
+    bBody.innerHTML=emptyRow(6,'✅','Bekleyen ödeme yok!');
+  }else{
+    const bugun=today();
+    bBody.innerHTML=bekleyenler.map(g=>{
+      const gun=Math.floor((new Date(bugun)-new Date(g.tarih))/86400000);
+      const gunLabel=gun===0?`<span style="color:var(--accent)">Bugün</span>`:gun>0?`<span style="color:var(--red);font-weight:600">${gun} gün önce</span>`:`<span style="color:var(--muted2)">${Math.abs(gun)} gün sonra</span>`;
+      return`<tr><td>${formatDate(g.tarih)}</td><td style="font-weight:500">${g.kaynak||'-'}</td><td><span class="badge ${g.tur==='Mazot Karşılığı'?'badge-teal':'badge-orange'}">${g.tur}</span></td><td>${gelirDeger(g)}</td><td>${gunLabel}</td><td><button class="btn btn-sm btn-green" style="white-space:nowrap" onclick="tahsilEt(${g.id})">✓ Tahsil Edildi</button></td></tr>`;
+    }).join('');
+  }
+
+  // Son seferler
+  document.getElementById('dashSeferBody').innerHTML=seferler.length===0?emptyRow(6,'🗺️','Henüz sefer yok')
+    :seferler.slice(0,5).map(s=>`<tr><td>${formatDate(s.tarih)}</td><td>${s.nereden||''} → ${s.nereye||''}</td><td><span class="badge badge-orange">${s.yuk||'-'}</span></td><td>${s.km?Number(s.km).toLocaleString('tr-TR')+' km':'-'}</td><td><span class="badge ${s.ucret_turu==='mazot'?'badge-teal':'badge-green'}">${s.ucret_turu==='mazot'?'⛽ Mazot':'💵 Nakit'}</span></td><td>${s.ucret_turu==='mazot'?fmtMazot(s.mazot_litre):fmt(s.gelir)}</td></tr>`).join('');
+
+  const bekGelir=gelirler.filter(g=>g.durum==='Bekliyor'&&g.tur!=='Mazot Karşılığı').reduce((s,i)=>s+Number(i.tutar),0);
+  const bekMazot=gelirler.filter(g=>g.durum==='Bekliyor'&&g.tur==='Mazot Karşılığı').reduce((s,i)=>s+Number(i.mazot_litre||0),0);
+  document.getElementById('dashGelirGider').innerHTML=`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+      <div>
+        <div style="font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:.75rem;font-weight:700">Gelir</div>
+        <div style="display:flex;flex-direction:column;gap:.5rem">
+          <div style="display:flex;justify-content:space-between;padding:.5rem 0;border-bottom:1px solid var(--border)"><span style="font-size:.82rem">Nakit Toplam</span><span class="net-positive">${fmt(topGelir)}</span></div>
+          <div style="display:flex;justify-content:space-between;padding:.5rem 0;border-bottom:1px solid var(--border)"><span style="font-size:.82rem">⛽ Mazot Toplam</span><span style="color:#14b8a6;font-weight:600">${fmtMazot(topMazotGelir)}</span></div>
+          <div style="display:flex;justify-content:space-between;padding:.5rem 0;border-bottom:1px solid var(--border)"><span style="font-size:.82rem">Bekleyen Nakit</span><span style="color:var(--accent);font-weight:600">${fmt(bekGelir)}</span></div>
+          <div style="display:flex;justify-content:space-between;padding:.5rem 0"><span style="font-size:.82rem">Bekleyen Mazot</span><span style="color:#14b8a6;font-weight:600">${fmtMazot(bekMazot)}</span></div>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:.75rem;font-weight:700">Gider</div>
+        <div style="display:flex;flex-direction:column;gap:.5rem">
+          <div style="display:flex;justify-content:space-between;padding:.5rem 0;border-bottom:1px solid var(--border)"><span style="font-size:.82rem">⛽ Yakıt</span><span class="net-negative">${fmt(topYakit)}</span></div>
+          <div style="display:flex;justify-content:space-between;padding:.5rem 0;border-bottom:1px solid var(--border)"><span style="font-size:.82rem">🔧 Bakım</span><span class="net-negative">${fmt(topBakim)}</span></div>
+          <div style="display:flex;justify-content:space-between;padding:.5rem 0"><span style="font-size:.82rem;font-weight:700">Net</span><span class="${net>=0?'net-positive':'net-negative'}" style="font-size:1rem">${fmt(net)}</span></div>
+        </div>
+      </div>
+    </div>`;
+}
+
+async function renderTable(type){
+  if(!currentUser)return;
+  const uid=currentUser.id;
+  const from=periodFrom(periods[type]||'hafta');
+
+  if(type==='sefer'){
+    const{data}=await sb.from('seferler').select('*').eq('user_id',uid).gte('tarih',from).order('tarih',{ascending:false});
+    const items=data||[];
+    document.getElementById('seferBody').innerHTML=items.length===0?emptyRow(10,'🗺️','Bu dönemde sefer yok')
+      :items.map(s=>`<tr><td>${formatDate(s.tarih)}</td><td>${s.nereden||'-'}</td><td>${s.nereye||'-'}</td><td><span class="badge badge-orange">${s.yuk||'-'}</span></td><td>${s.km?Number(s.km).toLocaleString('tr-TR')+' km':'-'}</td><td>${s.saat||'-'}</td><td><span class="badge ${s.ucret_turu==='mazot'?'badge-teal':'badge-green'}">${s.ucret_turu==='mazot'?'⛽ Mazot':'💵 Nakit'}</span></td><td>${s.ucret_turu==='mazot'?fmtMazot(s.mazot_litre):fmt(s.gelir)}</td><td style="color:var(--muted2);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s.aciklama||'-'}</td><td><button class="btn btn-danger btn-sm" onclick="deleteItem('seferler',${s.id})">Sil</button></td></tr>`).join('');
+  }
+
+  if(type==='yakit'){
+    const{data}=await sb.from('yakitlar').select('*').eq('user_id',uid).gte('tarih',from).order('tarih',{ascending:false});
+    const items=data||[];
+    const tc={'Yakıt':'badge-orange','Lastik':'badge-blue','Yağ / Filtre':'badge-purple','Köprü / Otoyol':'badge-green'};
+    document.getElementById('yakitBody').innerHTML=items.length===0?emptyRow(7,'⛽','Bu dönemde masraf yok')
+      :items.map(y=>`<tr><td>${formatDate(y.tarih)}</td><td><span class="badge ${tc[y.tur]||'badge-blue'}">${y.tur}</span></td><td>${y.miktar||'-'}</td><td>${y.birim?Number(y.birim).toLocaleString('tr-TR')+' ₺':'-'}</td><td style="font-weight:600;color:var(--red)">${fmt(y.toplam)}</td><td style="color:var(--muted2)">${y.aciklama||'-'}</td><td><button class="btn btn-danger btn-sm" onclick="deleteItem('yakitlar',${y.id})">Sil</button></td></tr>`).join('');
+  }
+
+  if(type==='gelir'){
+    const{data}=await sb.from('gelirler').select('*').eq('user_id',uid).gte('tarih',from).order('tarih',{ascending:false});
+    const items=data||[];
+    document.getElementById('gelirBody').innerHTML=items.length===0?emptyRow(8,'💰','Bu dönemde gelir yok')
+      :items.map(g=>`<tr><td>${formatDate(g.tarih)}</td><td>${g.kaynak||'-'}</td><td><span class="badge ${g.tur==='Mazot Karşılığı'?'badge-teal':'badge-orange'}">${g.tur}</span></td><td>${gelirDeger(g)}</td><td><span class="badge ${g.durum==='Ödendi'?'badge-green':'badge-orange'}">${g.durum}</span></td><td style="color:var(--muted2)">${g.aciklama||'-'}</td><td>${g.durum==='Bekliyor'?`<button class="btn btn-sm btn-green" style="white-space:nowrap" onclick="tahsilEt(${g.id})">✓ Tahsil Edildi</button>`:'<span style="color:var(--muted)">—</span>'}</td><td><button class="btn btn-danger btn-sm" onclick="deleteItem('gelirler',${g.id})">Sil</button></td></tr>`).join('');
+  }
+
+  if(type==='bakim'){
+    const{data}=await sb.from('bakimlar').select('*').eq('user_id',uid).gte('tarih',from).order('tarih',{ascending:false});
+    const items=data||[];
+    const tc={'Arıza':'badge-red','Periyodik Bakım':'badge-green','Lastik Değişimi':'badge-blue'};
+    document.getElementById('bakimBody').innerHTML=items.length===0?emptyRow(8,'🔧','Bu dönemde bakım yok')
+      :items.map(b=>`<tr><td>${formatDate(b.tarih)}</td><td><span class="badge ${tc[b.tur]||'badge-purple'}">${b.tur}</span></td><td>${b.aciklama||'-'}</td><td>${b.km?Number(b.km).toLocaleString('tr-TR')+' km':'-'}</td><td style="font-weight:600;color:var(--red)">${fmt(b.maliyet)}</td><td>${b.servis||'-'}</td><td><span class="badge ${b.durum==='Tamamlandı'?'badge-green':b.durum==='Devam Ediyor'?'badge-orange':'badge-blue'}">${b.durum}</span></td><td><button class="btn btn-danger btn-sm" onclick="deleteItem('bakimlar',${b.id})">Sil</button></td></tr>`).join('');
+  }
+}
+
+async function renderYonetici(){
+  const{data:surucular}=await sb.from('profiles').select('*').eq('rol','surucu').order('ad');
+  const grid=document.getElementById('surucuGrid');
+  if(!surucular||surucular.length===0){grid.innerHTML=`<div class="empty" style="grid-column:1/-1"><div class="empty-icon">👤</div><p>Henüz sürücü yok.</p></div>`;return}
+  const from=getMonthStart();
+  const kartlar=await Promise.all(surucular.map(async s=>{
+    const[gR,yR,sR]=await Promise.all([
+      sb.from('gelirler').select('tutar,mazot_litre,tur').eq('user_id',s.id).gte('tarih',from),
+      sb.from('yakitlar').select('toplam').eq('user_id',s.id).gte('tarih',from),
+      sb.from('seferler').select('id').eq('user_id',s.id).gte('tarih',from)
+    ]);
+    const gelir=(gR.data||[]).filter(g=>g.tur!=='Mazot Karşılığı').reduce((t,i)=>t+Number(i.tutar),0);
+    const mazot=(gR.data||[]).filter(g=>g.tur==='Mazot Karşılığı').reduce((t,i)=>t+Number(i.mazot_litre||0),0);
+    const gider=(yR.data||[]).reduce((t,i)=>t+Number(i.toplam),0);
+    return{profil:s,gelir,mazot,gider,sefer:(sR.data||[]).length};
+  }));
+  grid.innerHTML=kartlar.map(k=>`
+    <div class="surucu-kart" onclick="surucuDetay('${k.profil.id}','${(k.profil.ad||'İsimsiz').replace(/'/g,"\\'")}')">
+      <div class="surucu-kart-ad">👤 ${k.profil.ad||'İsimsiz'}</div>
+      <div style="font-size:.72rem;color:var(--muted2);margin-top:.15rem">Bu ay</div>
+      <div class="surucu-kart-stats">
+        <span class="badge badge-green">↑ ${fmt(k.gelir)}</span>
+        ${k.mazot>0?`<span class="badge badge-teal">⛽ ${fmtMazot(k.mazot)}</span>`:''}
+        <span class="badge badge-red">↓ ${fmt(k.gider)}</span>
+        <span class="badge badge-blue">${k.sefer} sefer</span>
+      </div>
+    </div>`).join('');
+}
+
+async function surucuDetay(uid,ad){
+  document.getElementById('yoneticiDetayBaslik').textContent=`👤 ${ad}`;
+  document.getElementById('yoneticiDetay').style.display='block';
+  document.getElementById('yoneticiDetayIcerik').innerHTML='<div class="loading">Yükleniyor...</div>';
+  const[sR,gR,yR]=await Promise.all([
+    sb.from('seferler').select('*').eq('user_id',uid).order('tarih',{ascending:false}).limit(20),
+    sb.from('gelirler').select('*').eq('user_id',uid).order('tarih',{ascending:false}).limit(20),
+    sb.from('yakitlar').select('*').eq('user_id',uid).order('tarih',{ascending:false}).limit(20)
+  ]);
+  const seferler=sR.data||[],gelirler=gR.data||[],yakitlar=yR.data||[];
+  const topGelir=gelirler.filter(g=>g.tur!=='Mazot Karşılığı').reduce((s,i)=>s+Number(i.tutar),0);
+  const topMazot=gelirler.filter(g=>g.tur==='Mazot Karşılığı').reduce((s,i)=>s+Number(i.mazot_litre||0),0);
+  const topGider=yakitlar.reduce((s,i)=>s+Number(i.toplam),0);
+  const bekleyen=gelirler.filter(g=>g.durum==='Bekliyor'&&g.tur!=='Mazot Karşılığı').reduce((s,i)=>s+Number(i.tutar),0);
+  const bekMazot=gelirler.filter(g=>g.durum==='Bekliyor'&&g.tur==='Mazot Karşılığı').reduce((s,i)=>s+Number(i.mazot_litre||0),0);
+  document.getElementById('yoneticiDetayIcerik').innerHTML=`
+    <div class="stats-grid" style="margin-bottom:1.5rem">
+      <div class="stat-card green"><div class="stat-label">Nakit Gelir</div><div class="stat-value">${fmt(topGelir)}</div></div>
+      <div class="stat-card teal"><div class="stat-label">Mazot Geliri</div><div class="stat-value">${topMazot.toLocaleString('tr-TR')}</div><div class="stat-sub">litre</div></div>
+      <div class="stat-card red"><div class="stat-label">Gider</div><div class="stat-value">${fmt(topGider)}</div></div>
+      <div class="stat-card orange"><div class="stat-label">Bekleyen</div><div class="stat-value">${fmt(bekleyen)}</div><div class="stat-sub">${bekMazot>0?fmtMazot(bekMazot)+' mazot':''}</div></div>
+      <div class="stat-card blue"><div class="stat-label">Sefer</div><div class="stat-value">${seferler.length}</div></div>
+    </div>
+    <div style="font-size:.75rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:.75rem">Son Seferler</div>
+    <div class="table-wrap" style="margin-bottom:1.5rem"><table><thead><tr><th>Tarih</th><th>Güzergah</th><th>Yük</th><th>KM</th><th>Ücret</th></tr></thead><tbody>
+    ${seferler.slice(0,8).map(s=>`<tr><td>${formatDate(s.tarih)}</td><td>${s.nereden||''} → ${s.nereye||''}</td><td><span class="badge badge-orange">${s.yuk||'-'}</span></td><td>${s.km?Number(s.km).toLocaleString('tr-TR')+' km':'-'}</td><td>${s.ucret_turu==='mazot'?`<span style="color:#14b8a6">${fmtMazot(s.mazot_litre)}</span>`:fmt(s.gelir)}</td></tr>`).join('')||'<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:1rem">Kayıt yok</td></tr>'}
+    </tbody></table></div>
+    <div style="font-size:.75rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:.75rem">Bekleyen Ödemeler</div>
+    <div class="table-wrap"><table><thead><tr><th>Tarih</th><th>Kaynak</th><th>Tür</th><th>Değer</th></tr></thead><tbody>
+    ${gelirler.filter(g=>g.durum==='Bekliyor').map(g=>`<tr><td>${formatDate(g.tarih)}</td><td>${g.kaynak||'-'}</td><td><span class="badge ${g.tur==='Mazot Karşılığı'?'badge-teal':'badge-orange'}">${g.tur}</span></td><td>${gelirDeger(g)}</td></tr>`).join('')||'<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:1rem">Bekleyen yok</td></tr>'}
+    </tbody></table></div>`;
+}
+
+function closeYoneticiDetay(){document.getElementById('yoneticiDetay').style.display='none'}
+
+async function surucuEkle(){
+  const ad=document.getElementById('sur-ad').value.trim();
+  const email=document.getElementById('sur-email').value.trim();
+  const sifre=document.getElementById('sur-sifre').value;
+  const errEl=document.getElementById('surucuError');
+  errEl.style.display='none';
+  if(!ad||!email||!sifre){errEl.textContent='Tüm alanları doldurun.';errEl.style.display='block';return}
+  const{data:{session:mevcutSession}}=await sb.auth.getSession();
+  const{data,error}=await sb.auth.signUp({email,password:sifre});
+  if(error){errEl.textContent='Hata: '+error.message;errEl.style.display='block';return}
+  if(data.user){
+    await sb.from('profiles').insert({id:data.user.id,ad,rol:'surucu'});
+    await sb.auth.setSession(mevcutSession);
+    closeForm('surucu');
+    ['sur-ad','sur-email','sur-sifre'].forEach(id=>document.getElementById(id).value='');
+    alert(`✅ ${ad} başarıyla eklendi!\nE-posta: ${email}\nŞifre: ${sifre}`);
+    renderYonetici();
+  }
+}
+</script>
+</body>
+</html>
