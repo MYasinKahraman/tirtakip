@@ -275,7 +275,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <div class="form-group"><label>Saat</label><input type="time" id="sf-saat"></div>
       <div class="form-group"><label>Nereden</label><input type="text" id="sf-nereden" placeholder="Başlangıç"></div>
       <div class="form-group"><label>Nereye</label><input type="text" id="sf-nereye" placeholder="Varış"></div>
-      <div class="form-group"><label>Yük Türü</label><select id="sf-yuk"><option>Hafriyat</option><option>Kum</option><option>Çakıl</option><option>Moloz</option><option>Toprak</option><option>Mıcır</option><option>Diğer</option></select></div>
+      <div class="form-group"><label>Yük Türü</label><select id="sf-yuk"><option>Hafriyat Toprağı</option><option>Kil</option><option>Kum</option><option>İnce Kum</option><option>Kaba Kum</option><option>Çakıl</option><option>Mıcır</option><option>Moloz</option><option>İnşaat Moloz</option><option>Yıkıntı Atığı</option><option>Toprak Dolgu</option><option>Bitkisel Toprak</option><option>Stabilize Malzeme</option><option>Kaya</option><option>Taş</option><option>Beton Kırığı</option><option>Asfalt Kırığı</option><option>Tuğla Kırığı</option><option>Temel Kazısı</option><option>Yol Kazısı</option><option>Diğer</option></select></div>
       <div class="form-group"><label>KM</label><input type="number" id="sf-km" placeholder="0"></div>
       <div class="form-group full"><label>Ücret Türü</label>
         <select id="sf-ucret-turu" onchange="ucretTuruDegis()">
@@ -341,6 +341,33 @@ tr:hover td{background:rgba(255,255,255,.02)}
     <div class="form-group"><label>E-posta</label><input type="email" id="sur-email" placeholder="surucu@mail.com"></div>
     <div class="form-group"><label>Şifre</label><input type="password" id="sur-sifre" placeholder="En az 6 karakter"></div>
     <div class="form-actions"><button class="btn btn-ghost btn-sm" onclick="closeForm('surucu')">İptal</button><button class="btn btn-sm" onclick="surucuEkle()">Ekle</button></div>
+  </div>
+</div>
+
+
+<!-- DÜZENLEME FORMLARI -->
+<div class="form-overlay" id="form-edit-sefer">
+  <div class="form-box">
+    <div class="form-title">✏️ Sefer Düzenle</div>
+    <input type="hidden" id="ef-sefer-id">
+    <div class="form-grid">
+      <div class="form-group"><label>Tarih</label><input type="date" id="ef-tarih"></div>
+      <div class="form-group"><label>Saat</label><input type="time" id="ef-saat"></div>
+      <div class="form-group"><label>Nereden</label><input type="text" id="ef-nereden"></div>
+      <div class="form-group"><label>Nereye</label><input type="text" id="ef-nereye"></div>
+      <div class="form-group"><label>Yük Türü</label><select id="ef-yuk"><option>Hafriyat Toprağı</option><option>Kil</option><option>Kum</option><option>İnce Kum</option><option>Kaba Kum</option><option>Çakıl</option><option>Mıcır</option><option>Moloz</option><option>İnşaat Moloz</option><option>Yıkıntı Atığı</option><option>Toprak Dolgu</option><option>Bitkisel Toprak</option><option>Stabilize Malzeme</option><option>Kaya</option><option>Taş</option><option>Beton Kırığı</option><option>Asfalt Kırığı</option><option>Tuğla Kırığı</option><option>Temel Kazısı</option><option>Yol Kazısı</option><option>Diğer</option></select></div>
+      <div class="form-group"><label>KM</label><input type="number" id="ef-km" placeholder="0"></div>
+      <div class="form-group full"><label>Ücret Türü</label>
+        <select id="ef-ucret-turu" onchange="eUcretTuruDegis()">
+          <option value="nakit">💵 Nakit / Havale</option>
+          <option value="mazot">⛽ Mazot Karşılığı</option>
+        </select>
+      </div>
+      <div class="form-group" id="ef-nakit-grup"><label>Gelir (₺)</label><input type="number" id="ef-gelir" placeholder="0"></div>
+      <div class="form-group" id="ef-mazot-grup" style="display:none"><label>Mazot (Litre)</label><input type="number" id="ef-mazot" placeholder="0"></div>
+      <div class="form-group full"><label>Not</label><textarea id="ef-aciklama"></textarea></div>
+    </div>
+    <div class="form-actions"><button class="btn btn-ghost btn-sm" onclick="closeForm('edit-sefer')">İptal</button><button class="btn btn-sm" onclick="updateSefer()">Güncelle</button></div>
   </div>
 </div>
 
@@ -662,7 +689,7 @@ async function renderTable(type){
   if(type==='sefer'){
     const items=await dbSelect('seferler',{eq:{user_id:uid},gte:{tarih:from},order:'tarih.desc'});
     document.getElementById('seferBody').innerHTML=items.length===0?emptyRow(10,'🗺️','Bu dönemde sefer yok')
-      :items.map(s=>`<tr><td>${formatDate(s.tarih)}</td><td>${s.nereden||'-'}</td><td>${s.nereye||'-'}</td><td><span class="badge badge-orange">${s.yuk||'-'}</span></td><td>${s.km?Number(s.km).toLocaleString('tr-TR')+' km':'-'}</td><td>${s.saat||'-'}</td><td><span class="badge ${s.ucret_turu==='mazot'?'badge-teal':'badge-green'}">${s.ucret_turu==='mazot'?'⛽ Mazot':'💵 Nakit'}</span></td><td>${s.ucret_turu==='mazot'?fmtL(s.mazot_litre):fmt(s.gelir)}</td><td style="color:var(--muted2);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s.aciklama||'-'}</td><td><button class="btn btn-danger btn-sm" onclick="deleteItem('seferler',${s.id})">Sil</button></td></tr>`).join('');
+      :items.map(s=>`<tr><td>${formatDate(s.tarih)}</td><td>${s.nereden||'-'}</td><td>${s.nereye||'-'}</td><td><span class="badge badge-orange">${s.yuk||'-'}</span></td><td>${s.km?Number(s.km).toLocaleString('tr-TR')+' km':'-'}</td><td>${s.saat||'-'}</td><td><span class="badge ${s.ucret_turu==='mazot'?'badge-teal':'badge-green'}">${s.ucret_turu==='mazot'?'⛽ Mazot':'💵 Nakit'}</span></td><td>${s.ucret_turu==='mazot'?fmtL(s.mazot_litre):fmt(s.gelir)}</td><td style="color:var(--muted2);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s.aciklama||'-'}</td><td style="white-space:nowrap"><button class="btn btn-ghost btn-sm" style="margin-right:4px" onclick='openEditSefer(${JSON.stringify(s)})'>✏️</button><button class="btn btn-danger btn-sm" onclick="deleteItem('seferler',${s.id})">Sil</button></td></tr>`).join('');
   }
   if(type==='yakit'){
     const items=await dbSelect('yakitlar',{eq:{user_id:uid},gte:{tarih:from},order:'tarih.desc'});
@@ -791,6 +818,52 @@ async function surucuEkle(){
       renderYonetici();
     }
   }catch(e){errEl.textContent='Bağlantı hatası: '+e.message;errEl.style.display='block'}
+}
+
+
+function eUcretTuruDegis(){
+  const t=document.getElementById('ef-ucret-turu').value;
+  document.getElementById('ef-nakit-grup').style.display=t==='nakit'?'':'none';
+  document.getElementById('ef-mazot-grup').style.display=t==='mazot'?'':'none';
+}
+
+function openEditSefer(s){
+  document.getElementById('ef-sefer-id').value=s.id;
+  document.getElementById('ef-tarih').value=s.tarih||'';
+  document.getElementById('ef-saat').value=s.saat||'';
+  document.getElementById('ef-nereden').value=s.nereden||'';
+  document.getElementById('ef-nereye').value=s.nereye||'';
+  document.getElementById('ef-km').value=s.km||'';
+  document.getElementById('ef-aciklama').value=s.aciklama||'';
+  const tur=s.ucret_turu||'nakit';
+  document.getElementById('ef-ucret-turu').value=tur;
+  document.getElementById('ef-gelir').value=s.gelir||'';
+  document.getElementById('ef-mazot').value=s.mazot_litre||'';
+  // set yuk
+  const yukSel=document.getElementById('ef-yuk');
+  for(let o of yukSel.options){if(o.value===s.yuk){o.selected=true;break;}}
+  eUcretTuruDegis();
+  document.getElementById('form-edit-sefer').classList.add('open');
+}
+
+async function updateSefer(){
+  const id=document.getElementById('ef-sefer-id').value;
+  const ucretTuru=document.getElementById('ef-ucret-turu').value;
+  const gelir=ucretTuru==='nakit'?Number(document.getElementById('ef-gelir').value)||0:0;
+  const mazotLitre=ucretTuru==='mazot'?Number(document.getElementById('ef-mazot').value)||0:0;
+  const r=await dbUpdate('seferler',{
+    tarih:document.getElementById('ef-tarih').value,
+    saat:document.getElementById('ef-saat').value,
+    nereden:document.getElementById('ef-nereden').value,
+    nereye:document.getElementById('ef-nereye').value,
+    yuk:document.getElementById('ef-yuk').value,
+    km:Number(document.getElementById('ef-km').value)||0,
+    ucret_turu:ucretTuru,gelir,mazot_litre:mazotLitre,
+    aciklama:document.getElementById('ef-aciklama').value
+  },'id',id);
+  if(!r.ok)return alert('Hata: '+JSON.stringify(r.data));
+  closeForm('edit-sefer');
+  renderDashboard();renderTable('sefer');
 }
 
 // BAŞLAT
